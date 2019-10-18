@@ -1,10 +1,4 @@
-export const getLocalTimezone = (time)=>{
-    return /\((.*)\)/.exec(time.toString())[1];
-}
-
-export const getUTCTime = (time)=>{
-    let offset = time.getTimezoneOffset()/60
-    time.setHours(time.getHours() + offset)
-    setEventTime(time)
-    setUTC(true)
+export const getUTCDiff = (diff) => {
+    let hours = diff/60
+    return  hours < 0 ? "UTC " + hours : "UTC +" +hours
 }

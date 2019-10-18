@@ -1,92 +1,98 @@
 import React, {useState, useEffect} from 'react';
 import './timezone.scss';
-import moment from 'moment';
+import moment from 'moment-timezone';
+import Country from 'countries-and-timezones';
+import {getUTCDiff} from '../../helpers/Utils';
+import LangCode from 'iso-lang-codes'
 
-const Timezone = (props)=>{
-    const [eventName, setEventName] = useState("")
-    const [startDate, setStartDate] = useState("2019-10-10 10:00:00.000000 +00:00")
-    const [eventTime, setEventTime] = useState("")
+const Timezone = (props) => {
+    const [eventName] = useState("Latency Timezone Challenge")
+    const [startDate] = useState("2019-10-10 10:00:00.000000 +00:00")
+    const [event] = useState(new Date(startDate))
+    const [current] = useState(new Date())
     const [locale, setLocale] = useState("")
-    const [timezone, setTimezone] = useState("")
-    const [utc, setUTC] = useState(false)
-    const [localeSelect, setLocaleSelect] = useState("1")
-    const [timezoneSelect, setTimezoneSelect] = useState("1")
+    const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    const [list, setList] = useState(Object.values(Country.getAllTimezones()))
 
-    const handleLocaleSelectChange = (e)=>{
-        setLocaleSelect(e.target.value)
-        if(e.target.value === "1"){
-            getLocalTime()
-            setLocale(eventTime.toString().split(" ")[5])
-        } else{
-            getUTCTime()
-            setLocale("")
+    useEffect(() => {
+        initiate()
+        let data = list.filter(item => item.country)
+        setList(data)
+    }, [])
+
+    const initiate = () => {
+        if(list){
+            const client = getData("timezone", timezone)
+            setTimezone(client ? client.name : "")
+            setLocale(client ? client.country : "")
         }
     }
 
-    const handleTimezoneSelectChange = (e)=>{
-        setTimezoneSelect(e.target.value)
-        if(e.target.value === "1"){
-            getLocalTime()
-            setTimezone(getLocalTimezone(eventTime))
-        } else{
-            setTimezone("")
-            getUTCTime()
+    const getData = (base, data) => {
+        if(base === "locale"){
+            return list.find(item => item.country === data)
+        } else if(base === "timezone"){
+            return list.find(item => item.name === data)
         }
     }
 
-    const getLocalTimezone = (time)=>{
-        return /\((.*)\)/.exec(time.toString())[1];
+    const getClientTimeZoneCountry = () => {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone
     }
 
-    const getUTCTime = ()=>{
-        let time = new Date(startDate)
-        let offset = time.getTimezoneOffset()/60
-        time.setHours(time.getHours() + offset)
-        setEventTime(time)
-        setUTC(true)
+    const selectLocale = (e) => {
+        const data = getData("locale", e.target.value)
+        setTimezone(data.name)
+        setLocale(data.country)
     }
 
-    const getLocalTime = ()=>{
-        let time = new Date(startDate)
-        setEventTime(time)
-        setUTC(false)
+    const selectTimezone = (e) => {
+        const data = getData("timezone", e.target.value)
+        setLocale(data.country)
+        setTimezone(data.name)
     }
 
-    
-
-    useEffect(()=>{
-        setEventName("Latency Timezone Challenge")
-        let time = new Date(startDate)
-        setEventTime(time)
-        setTimezone(getLocalTimezone(time))
-        let loc = time.toString().split(" ")[5]
-        setLocale(loc)
-    }, [startDate])
+    const formattedDate = (data) => {
+        let date = new Date(data)
+        let lang = LangCode.findCountryLanguages(locale)
+        let day = date.getDate()
+        let month = date.toLocaleString(lang[0], {month: 'long'})
+        let year = date.getFullYear()
+        return day + " " + month + ", " + year + " " + moment(date).tz(timezone).format("h:mm a")
+    }
 
     return(
         <div className="timezone-wrapper">
-            <div className="box">
+            <div className="box"> 
                 <h1>{eventName}</h1>
-                {!utc && <h2>{moment(eventTime).format("MMM Do YYYY, h:mm a")}</h2>}
-                {utc && <h2>{eventTime.toString()}</h2>}
-                {locale && <h3>Locale: <span>{locale}</span></h3>}
-                {timezone && <h3>Timezone: <span>{timezone}</span></h3>}
+                <div className="currentTimeList">
+                    <h3>Current Time</h3>
+                    <h4 className="currentTime">{formattedDate(current, locale)}</h4>
+                </div>
+                <div className="eventTimeList">
+                    <h3>Event Time</h3>
+                    <h4 className="eventTime">{formattedDate(event, locale)}</h4>
+                </div>
+                <h3>Country Code: <span>{locale}</span></h3>
+                <h3>Timezone: <span>{timezone}</span></h3>
             </div>
 
             <div className="settings">
                 <div className="row">
                     <label>Locale:</label>
-                    <select value={localeSelect} onChange={handleLocaleSelectChange}>
-                        <option value={0}>None</option>
-                        <option value={1}>Load Info</option>
+                    <select value={locale} onChange={selectLocale}>
+                        { list.map((item, index) => 
+                            <option key={item.name} value={item.country}> {"(" + item.country + ") " + getUTCDiff(item.utcOffset)}</option>
+                        )}
                     </select>
                 </div>
 
                 <div className="row">
                     <label>Timezone:</label>
-                    <select value={timezoneSelect} onChange={handleTimezoneSelectChange}>
-                        <option value={0}>None</option>
-                        <option value={1}>Load Info</option>
+                    <select value={timezone} onChange={selectTimezone}>
+                        { list.map((item, index) => 
+                            <option key={item.name} value={item.name}>{item.name}</option>
+                        )}
                     </select>
                 </div>
             </div>

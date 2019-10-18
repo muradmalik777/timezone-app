@@ -1,5 +1,5 @@
 import React from 'react';
-import './App.css';
+import './assets/scss/app.scss';
 import Timezone from './components/Timezone/Timezone';
 
 function App() {
